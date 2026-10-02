@@ -1,0 +1,277 @@
+/*
+ * Music Playlist Manager
+ * DSA concepts used:
+ *   1. Doubly Linked List -> the playlist (go next / previous)
+ *   2. Stack (array based) -> history of played songs
+ *   3. Queue (array based) -> "up next" songs added by user
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define MAX 20
+
+/*
+1. DOUBLY LINKED LIST -> the playlist
+*/
+struct Song
+{
+    char name[50];
+    struct Song *prev;
+    struct Song *next;
+};
+
+struct Song *head = NULL;
+struct Song *current = NULL;
+
+void addSong(char name[])
+{
+    struct Song *newSong = (struct Song *) malloc(sizeof(struct Song));
+    strcpy(newSong->name, name);
+    newSong->next = NULL;
+    newSong->prev = NULL;
+
+    if (head == NULL)
+    {
+        head = newSong;
+        current = newSong;
+        return;
+    }
+
+    struct Song *temp = head;
+    while (temp->next != NULL)
+    {
+        temp = temp->next;
+    }
+    temp->next = newSong;
+    newSong->prev = temp;
+}
+
+void showPlaylist()
+{
+    if (head == NULL)
+    {
+        printf("Playlist is empty.\n");
+        return;
+    }
+    struct Song *temp = head;
+    while (temp != NULL)
+    {
+        if (temp == current)
+            printf("-> %s (playing)\n", temp->name);
+        else
+            printf("%s\n", temp->name);
+        temp = temp->next;
+    }
+}
+
+/*
+2. STACK (array based) -> history of played songs
+*/
+
+struct Song *historyStack[MAX];
+int top = -1;
+
+void push(struct Song *s)
+{
+    if (top == MAX - 1)
+    {
+        printf("History is full!\n");
+        return;
+    }
+    top++;
+    historyStack[top] = s;
+}
+
+struct Song *pop()
+{
+    if (top == -1)
+    {
+        return NULL;
+    }
+    struct Song *s = historyStack[top];
+    top--;
+    return s;
+}
+
+void showHistory()
+{
+    if (top == -1)
+    {
+        printf("No history yet.\n");
+        return;
+    }
+    for (int i = top; i >= 0; i--)
+    {
+        printf("%s\n", historyStack[i]->name);
+    }
+}
+
+/*
+3. QUEUE (array based) -> "up next" songs
+*/
+
+struct Song *queueArr[MAX];
+int front = 0, rear = -1, qCount = 0;
+
+void enqueue(struct Song *s)
+{
+    if (qCount == MAX)
+    {
+        printf("Queue is full.\n");
+        return;
+    }
+    rear = (rear + 1) % MAX;
+    queueArr[rear] = s;
+    qCount++;
+}
+
+struct Song *dequeue()
+{
+    if (qCount == 0)
+    {
+        return NULL;
+    }
+    struct Song *s = queueArr[front];
+    front = (front + 1) % MAX;
+    qCount--;
+    return s;
+}
+
+void showQueue()
+{
+    if (qCount == 0)
+    {
+        printf("Queue is empty.\n");
+        return;
+    }
+    int i, index = front;
+    for (i = 0; i < qCount; i++)
+    {
+        printf("%s\n", queueArr[index]->name);
+        index = (index + 1) % MAX;
+    }
+}
+
+/*
+MEDIA CONTROLS
+*/
+
+void playNext()
+{
+    if (current == NULL)
+    {
+        printf("Playlist is empty.\n");
+        return;
+    }
+    push(current);
+
+    if (qCount > 0)
+    {
+        current = dequeue();
+        printf("Playing from queue: %s\n", current->name);
+        return;
+    }
+
+    if (current->next != NULL)
+    {
+        current = current->next;
+    }
+    else
+    {
+        current = head;
+    }
+    printf("Now playing: %s\n", current->name);
+}
+
+void playPrevious()
+{
+    struct Song *s = pop();
+    if (s != NULL)
+    {
+        current = s;
+    }
+    else if (current != NULL && current->prev != NULL)
+    {
+        current = current->prev;
+    }
+    if (current != NULL)
+        printf("Now playing: %s\n", current->name);
+    else
+        printf("Playlist is empty.\n");
+}
+
+void addToQueue(char name[])
+{
+    struct Song *newSong = (struct Song *) malloc(sizeof(struct Song));
+    strcpy(newSong->name, name);
+    newSong->next = NULL;
+    newSong->prev = NULL;
+    enqueue(newSong);
+}
+
+/*
+MAIN MENU
+*/
+
+int main()
+{
+    addSong("Blinding Lights");
+    addSong("Levitating");
+    addSong("Peaches");
+    addSong("As It Was");
+
+    int choice;
+    char name[50];
+
+    while (1)
+    {
+        printf("\n Music Playlist Manager \n");
+        printf("1. Show Playlist\n");
+        printf("2. Add Song\n");
+        printf("3. Play Next\n");
+        printf("4. Play Previous\n");
+        printf("5. Add Song to Queue\n");
+        printf("6. Show Queue\n");
+        printf("7. Show History\n");
+        printf("0. Exit\n");
+        printf("Enter choice: ");
+        scanf("%d", &choice);
+        getchar();
+        switch (choice)
+        {
+            case 1:
+                showPlaylist();
+                break;
+            case 2:
+                printf("Enter song name: ");
+                scanf(" %[^\n]", name);
+                addSong(name);
+                break;
+            case 3:
+                playNext();
+                break;
+            case 4:
+                playPrevious();
+                break;
+            case 5:
+                printf("Enter song name to queue: ");
+                scanf(" %[^\n]", name);
+                addToQueue(name);
+                break;
+            case 6:
+                showQueue();
+                break;
+            case 7:
+                showHistory();
+                break;
+            case 0:
+                printf("Goodbye!\n");
+                exit(0);
+            default:
+                printf("Invalid choice.\n");
+        }
+    }
+
+    return 0;
+}
